@@ -38,7 +38,7 @@ online  (2);
 
 silent  (1);
 
-playfile("oonaonihana.wav");
+playfile("input.wav");
 
 exit();
 
