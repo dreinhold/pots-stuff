@@ -1,4 +1,5 @@
 use warnings;
+use POSIX qw( fmod );
 
 $fs = 48000;
 $pi = 3.141592653589793;
@@ -18,12 +19,15 @@ open U, "|sox -t .raw -e sig -b 16 -c 1 -r $fs - ".
 
 #open U, "|sox -t .raw -e sig -b 16 -c 1 -r $fs - full.wav";
 
+ring_1(2);
+exit();
+
 onhook  ();
 offline ();
 silent  (2);
 offhook ();
 silent  (0.1);
-citydial  (2);
+dt_city (2);
 dtmf    ("5554823");
 silent  (2);
 online  (1);
@@ -34,7 +38,7 @@ online  (2);
 
 silent  (1);
 
-playfile("juuh.wav");
+playfile("oonaonihana.wav");
 
 exit();
 
@@ -84,7 +88,7 @@ sub dBnom {
   dBmax(-13) * dB($_[0]);
 }
 
-sub usdial {
+sub dt_us {
   my $dur = $_[0];
   my $t;
   for $n (0..int($dur*$fs+.5)-1) {
@@ -93,7 +97,7 @@ sub usdial {
   }
 }
 
-sub citydial {
+sub dt_city {
   my $dur = $_[0];
   my $t;
   for $n (0..int($dur*$fs+.5)-1) {
@@ -102,7 +106,7 @@ sub citydial {
   }
 }
 
-sub eudial {
+sub dt_eu {
   my $dur = $_[0];
   my $t;
   for $n (0..int($dur*$fs+.5)-1) {
@@ -111,30 +115,14 @@ sub eudial {
   }
 }
 
-sub v8bis_signals {
-  my $t = 0;
-
-  while (1) {
-
-    #CRe
-    if    ($t < .400)
-      { sample(dBnom(-12) * mf($t, 1375, 2002)); }
-    elsif ($t < .400 + .100)
-      { sample(dBnom(-12) * tone(400, $t)); }
-
-    #CRd
-    elsif ($t < .400 + .100 + .400)
-      { sample(dBnom(0) * mf($t, 1529, 2225)); }
-    elsif ($t < .400 + .100 + .400 + .100)
-      { sample(dBnom(0) * tone(1900, $t)); }
-
-    #ESr
-    elsif ($t < .400 + .100 + .400 + .100 + .100)
-      { sample(dBnom(0) * tone(1650, $t)); }
-    else
-      { last; }
-    
-    $t += 1/$fs;
+sub ring_1 {
+  my $dur = $_[0];
+  my $t;
+  my $pwr;
+  for $n (0..int($dur*$fs+.5)-1) {
+    $t = $n/$fs;
+    $pwr = fmod($t, 0.025) < 0.0125 ? -12 : -23.7;
+    sample(dBmax($pwr) * tone(800, $t) * tone(400, $t));
   }
 }
 
@@ -185,6 +173,34 @@ sub bluebox {
     silent(0.06);
   }
 }
+
+sub v8bis_signals {
+  my $t = 0;
+
+  while (1) {
+
+    #CRe
+    if    ($t < .400)
+      { sample(dBnom(-12) * mf($t, 1375, 2002)); }
+    elsif ($t < .400 + .100)
+      { sample(dBnom(-12) * tone(400, $t)); }
+
+    #CRd
+    elsif ($t < .400 + .100 + .400)
+      { sample(dBnom(0) * mf($t, 1529, 2225)); }
+    elsif ($t < .400 + .100 + .400 + .100)
+      { sample(dBnom(0) * tone(1900, $t)); }
+
+    #ESr
+    elsif ($t < .400 + .100 + .400 + .100 + .100)
+      { sample(dBnom(0) * tone(1650, $t)); }
+    else
+      { last; }
+    
+    $t += 1/$fs;
+  }
+}
+
 
 
 sub ansam {
@@ -356,7 +372,7 @@ sub playfile {
   open F, "sox $fname -t .raw -e sig -b 16 -c 1 -r $fs -|";
   while (not eof F) {
     read(F, $a, 2);
-    sample(dBnom(-1) * pcm2double(unpack("s",$a)));
+    sample(dBnom(7) * pcm2double(unpack("s",$a)));
   }
   close F;
 }
